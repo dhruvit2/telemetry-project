@@ -12,6 +12,8 @@ persistence:
   storageClass: "longhorn-custom" # Ensure this matches your cloud provider
 metrics:
   enabled: false # Helpful if you use Prometheus/Grafana
+image:
+  registry: public.ecr.aws
 
 #helm repo add bitnami https://charts.bitnami.com/bitnami
 #helm repo update

@@ -3,7 +3,7 @@ module telemetry-streaming
 go 1.26.2
 
 require (
-	github.com/dhruvit2/messagebroker v0.0.2
+	github.com/dhruvit2/messagebroker v0.0.3
 	go.uber.org/zap v1.24.0
 	google.golang.org/grpc v1.80.0
 )

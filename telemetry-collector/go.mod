@@ -3,7 +3,7 @@ module telemetry-collector
 go 1.26.2
 
 require (
-	github.com/dhruvit2/messagebroker v0.0.2
+	github.com/dhruvit2/messagebroker v0.0.3
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.80.0
@@ -30,4 +30,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/dhruvit2/messagebroker => ./messagebroker
+ replace github.com/dhruvit2/messagebroker => ./messagebroker
