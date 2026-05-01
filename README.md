@@ -34,7 +34,7 @@ NAMESPACE=telemetry ./manage.sh deploy
 # Show status of all running components
 ./manage.sh status
 
-# Tear everything down
+# Tear everything down (prompts for confirmation, including optional PVC deletion)
 ./manage.sh clean
 ```
 

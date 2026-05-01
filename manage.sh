@@ -233,12 +233,24 @@ clean_all() {
 
     if ! $DRY_RUN; then
         echo ""
-        warn "PersistentVolumeClaims are NOT deleted automatically."
-        warn "To delete PVCs (DATA LOSS), run:"
-        warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$ETCD_RELEASE"
-        warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$BROKER_RELEASE"
-        warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$INFLUXDB_RELEASE"
-        warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$COLLECTOR_RELEASE"
+        warn "Do you also want to delete all PersistentVolumeClaims (PVCs)?"
+        warn "This will result in PERMANENT DATA LOSS for etcd, messagebroker, and influxdb."
+        read -r -p "Delete PVCs? (yes/no): " confirm_pvc
+        if [[ "$confirm_pvc" == "yes" ]]; then
+            log "Deleting PVCs..."
+            kubectl delete pvc -n "$NAMESPACE" -l app.kubernetes.io/instance=$ETCD_RELEASE || true
+            kubectl delete pvc -n "$NAMESPACE" -l app.kubernetes.io/instance=$BROKER_RELEASE || true
+            kubectl delete pvc -n "$NAMESPACE" -l app.kubernetes.io/instance=$INFLUXDB_RELEASE || true
+            kubectl delete pvc -n "$NAMESPACE" -l app.kubernetes.io/instance=$COLLECTOR_RELEASE || true
+            success "PVCs deleted."
+        else
+            log "Skipping PVC deletion."
+            warn "To delete PVCs manually later, run:"
+            warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$ETCD_RELEASE"
+            warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$BROKER_RELEASE"
+            warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$INFLUXDB_RELEASE"
+            warn "  kubectl delete pvc -n $NAMESPACE -l app.kubernetes.io/instance=$COLLECTOR_RELEASE"
+        fi
         echo ""
     fi
 
