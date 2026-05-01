@@ -1,0 +1,18 @@
+apiVersion: v2
+name: influxdb-tsdb
+description: High Availability InfluxDB for GPU Telemetry
+type: application
+version: 1.0.0
+appVersion: "2.7"
+keywords:
+  - influxdb
+  - timeseries
+  - tsdb
+  - monitoring
+maintainers:
+  - name: Telemetry Team
+    email: telemetry@example.com
+home: https://www.influxdata.com/
+sources:
+  - https://github.com/influxdata/influxdb
+dependencies: []

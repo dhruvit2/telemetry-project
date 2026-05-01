@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "influxdb-tsdb.fullname" . }}
+  labels:
+    {{- include "influxdb-tsdb.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "influxdb-tsdb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "influxdb-tsdb.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "influxdb-tsdb.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: influxdb
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.influxdb.port }}
+              protocol: TCP
+          env:
+            - name: INFLUXDB_HTTP_BIND_ADDRESS
+              value: ":{{ .Values.influxdb.port }}"
+            - name: INFLUXDB_BOLT_PATH
+              value: {{ .Values.influxdb.persistence.path }}/bolt.db
+            - name: INFLUXDB_ENGINE_PATH
+              value: {{ .Values.influxdb.persistence.path }}/engine
+            - name: DOCKER_INFLUXDB_INIT_MODE
+              value: "setup"
+            - name: DOCKER_INFLUXDB_INIT_USERNAME
+              value: {{ .Values.influxdb.adminUser.username }}
+            - name: DOCKER_INFLUXDB_INIT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "influxdb-tsdb.fullname" . }}
+                  key: admin-password
+            - name: DOCKER_INFLUXDB_INIT_ORG
+              value: {{ .Values.influxdb.organization.name }}
+            - name: DOCKER_INFLUXDB_INIT_BUCKET
+              value: {{ .Values.influxdb.bucket.name }}
+            - name: DOCKER_INFLUXDB_INIT_RETENTION
+              value: {{ .Values.influxdb.bucket.retention | quote }}
+            - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "influxdb-tsdb.fullname" . }}
+                  key: admin-token
+          livenessProbe:
+            {{- if .Values.healthCheck.enabled }}
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+            {{- end }}
+          readinessProbe:
+            {{- if .Values.healthCheck.enabled }}
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: influxdb-data
+              mountPath: {{ .Values.influxdb.persistence.path }}
+      volumes:
+        - name: influxdb-data
+          {{- if .Values.influxdb.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "influxdb-tsdb.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

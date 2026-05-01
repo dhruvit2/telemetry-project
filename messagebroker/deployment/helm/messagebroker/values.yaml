@@ -1,0 +1,129 @@
+# Default values for messagebroker
+
+replicaCount: 1
+
+image:
+  repository: dhruvit2/messagebroker
+  pullPolicy: IfNotPresent
+  tag: "5.0.16"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 9092
+  targetPort: 9092
+  annotations: {}
+
+broker:
+  host: "0.0.0.0"
+  port: 9092
+  replicationFactor: 1
+  minISR: 1
+  retentionMs: 604800000  # 7 days
+  segmentBytes: 1073741824  # 1GB
+  maxPartitions: 1000
+
+coordinator:
+  enabled: true
+  url: "telemetry-etcd:2379"
+  type: "etcd"
+  username: "root"  # Set via secrets in production
+  password: "root123"  # Set via secrets in production
+
+storage:
+  enabled: true
+  size: 2Gi
+  storageClass: "local-path"
+  mountPath: /app/data
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - messagebroker
+        topologyKey: kubernetes.io/hostname
+
+livenessProbe:
+  tcpSocket:
+    port: 9092
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  tcpSocket:
+    port: 9092
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClassName: "longhorn-custom"
+  size: 1Gi
+
+# Service Monitor for Prometheus
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  labels: {}
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress

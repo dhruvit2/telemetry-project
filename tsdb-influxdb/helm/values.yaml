@@ -1,0 +1,141 @@
+# InfluxDB Helm Chart Values
+# High Availability Configuration for GPU Telemetry
+
+replicaCount: 1
+
+image:
+  repository: influxdb
+  tag: "2.7"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+service:
+  type: ClusterIP
+  port: 8086
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: influxdb.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: influxdb-tls
+      hosts:
+        - influxdb.example.com
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# InfluxDB Configuration
+influxdb:
+  # Admin credentials
+  adminUser:
+    username: admin
+    password: admin123
+  
+  # Organization and Bucket
+  organization:
+    name: telemetry
+  
+  bucket:
+    name: gpu_metrics_raw
+    retention: "4w"  # 4 weeks retention (approx 30 days)
+
+  # Token for API access
+  token:
+    name: gpu-metrics-token
+    value: CtptH6YYjCc58nF6Zb7G8qr5Bh8lHTO3JaplChMz8kPqLKLcjTRbxoGGcprkHnzSdyez1m07PNM0DXO5wdAYQQ==
+
+  # Port configuration
+  port: 8086
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: "longhorn-custom"
+    size: 2Gi
+    path: /var/lib/influxdb2
+
+# High Availability Settings
+ha:
+  enabled: false
+  replicaCount: 3
+  
+  # Anti-affinity for spread across nodes
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - influxdb
+
+# Backup Configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"  # 2 AM daily
+  retention: 7
+
+# Monitoring
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+
+# Health Check
+healthCheck:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3

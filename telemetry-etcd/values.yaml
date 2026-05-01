@@ -1,0 +1,21 @@
+global:
+  security:
+    allowInsecureImages: true
+replicaCount: 3
+auth:
+  rbac:
+    enabled: true
+    rootPassword: "root123"
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: "longhorn-custom" # Ensure this matches your cloud provider
+metrics:
+  enabled: false # Helpful if you use Prometheus/Grafana
+
+#helm repo add bitnami https://charts.bitnami.com/bitnami
+#helm repo update
+#helm install telemetry-etcd bitnami/etcd   --set image.registry=public.ecr.aws   --set image.repository=bitnami/etcd   -f values.yaml
+
+#kubectl run etcd-client --restart='Never' --image docker.io/bitnami/etcd:latest --env ETCDCTL_API=3 --command -- sleep infinity
+#kubectl exec -it etcd-client -- etcdctl --endpoints=my-etcd:2379 --user=root:YourStrongPassword put mykey "Hello World"

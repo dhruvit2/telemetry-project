@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  influxdb:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: influxdb-tsdb
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_HTTP_BIND_ADDRESS: ':8086'
+      INFLUXDB_BOLT_PATH: /var/lib/influxdb2/bolt.db
+      INFLUXDB_ENGINE_PATH: /var/lib/influxdb2/engine
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: admin123
+      INFLUXDB_ADMIN_ORG: telemetry
+      INFLUXDB_ADMIN_BUCKET: gpu_metrics_raw
+      INFLUXDB_ADMIN_RETENTION: 720h
+      INFLUXDB_ADMIN_TOKEN: 7h2UjNBHN7ApaRrwz49uyRi6sySH-NaICaNLz4ZP5ROt2Jf8lDfJqtyU_e-45STGcnvD71x5sa9dRlgb9H2kKg==
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+    networks:
+      - tsdb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  influxdb-data:
+    driver: local
+  influxdb-config:
+    driver: local
+
+networks:
+  tsdb-network:
+    driver: bridge

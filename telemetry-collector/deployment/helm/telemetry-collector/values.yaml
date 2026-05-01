@@ -1,0 +1,175 @@
+# Default values for telemetry-collector
+replicaCount: 3
+
+image:
+  repository: dhruvit2/telemetry-collector
+  pullPolicy: IfNotPresent
+  tag: "5.0.16"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 200Mi
+  requests:
+    cpu: 50m
+    memory: 50Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - telemetry-collector
+          topologyKey: kubernetes.io/hostname
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 2
+
+# Configuration
+config:
+  # Service identity
+  serviceId: "collector"
+  logLevel: "info"
+
+  # Collection behavior
+  readFrequencyMs: 100
+  batchSize: 50
+  batchTimeoutMs: 5000
+  maxPollRecords: 100
+
+  # Resilience
+  maxRetries: 5
+  retryBackoffMs: 100
+  circuitBreakerThreshold: 10
+
+  # Operational
+  healthCheckInterval: 30
+  gracefulShutdownTimeout: 30
+
+# Message Broker configuration
+messagebroker:
+  addresses: "messagebroker-0.messagebroker-headless:9092,messagebroker-1.messagebroker-headless:9092,messagebroker-2.messagebroker-headless:9092"
+  topic: "telemetry-data"
+  consumerGroup: "telemetry-collectors"
+  # Consumer group rebalancing strategy: "RoundRobin", "Range", or "Sticky"
+  rebalanceStrategy: "RoundRobin"
+  # Session timeout for detecting failed consumers (seconds)
+  sessionTimeoutSeconds: 30
+  # Heartbeat interval (seconds) - should be less than session timeout
+  heartbeatIntervalSeconds: 10
+
+# TSDB (InfluxDB) Configuration
+tsdb:
+  url: "http://influxdb-tsdb:8086"
+  org: "telemetry"
+  bucket: "gpu_metrics_raw"
+  retryAttempts: 3
+  queryTimeout: "30s"
+
+# Secrets for TSDB
+secrets:
+  # InfluxDB token - REQUIRED
+  # Generate or get from: kubectl create secret generic telemetry-collector-secret --from-literal=tsdb-token=<token>
+  tsdbToken: CtptH6YYjCc58nF6Zb7G8qr5Bh8lHTO3JaplChMz8kPqLKLcjTRbxoGGcprkHnzSdyez1m07PNM0DXO5wdAYQQ==
+
+# Persistence (optional)
+persistence:
+  enabled: true
+  storageClassName: "longhorn-custom"
+  accessMode: ReadWriteOnce
+  size: 2Gi
+  mountPath: /data
+
+# Environment variables for collection sources
+env: {}
+  # CUSTOM_SOURCE_ENABLED: "true"
+  # CUSTOM_SOURCE_URL: "http://api.example.com"
+
+# Additional environment variables from ConfigMap/Secrets
+envFrom: []
+
+# Volume mounts
+volumeMounts: []
+
+# Volumes
+volumes: []
+
+# Init containers
+initContainers: []
+
+# Priority class
+priorityClassName: ""
+
+# Restart policy
+restartPolicy: Always
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0

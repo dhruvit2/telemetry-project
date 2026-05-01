@@ -1,0 +1,124 @@
+# Telemetry API Helm Chart Values
+
+replicaCount: 1
+
+image:
+  repository: dhruvit2/telemetry-api
+  tag: "5.0.14"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: telemetry-api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: telemetry-api-tls
+    #   hosts:
+    #     - telemetry-api.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - telemetry-api
+        topologyKey: kubernetes.io/hostname
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# TSDB Configuration
+tsdb:
+  url: http://influxdb-tsdb:8086
+  org: telemetry
+  bucket: gpu_metrics_raw
+
+# Environment variables
+env:
+  LOG_LEVEL: "info"
+  PORT: "8080"
+  SERVICE_NAME: "telemetry-api"
+  SERVICE_ID: "1"
+
+# Secrets for TSDB
+secrets:
+  tsdbToken: CtptH6YYjCc58nF6Zb7G8qr5Bh8lHTO3JaplChMz8kPqLKLcjTRbxoGGcprkHnzSdyez1m07PNM0DXO5wdAYQQ==
+
+# Security Context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Container Security Context
+containerSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
