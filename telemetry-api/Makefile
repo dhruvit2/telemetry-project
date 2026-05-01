@@ -88,3 +88,19 @@ help:
 	@echo "  run-debug      - Run with debug logging"
 	@echo "  clean          - Clean build artifacts"
 	@echo "  deps           - Download dependencies"
+	@echo "  helm-package   - Package Helm chart"
+	@echo "  helm-install   - Install Helm chart to Kubernetes"
+
+.PHONY: helm-package
+helm-package:
+	@echo "Packaging Helm chart..."
+	@mkdir -p ./helm-packages
+	helm package helm/deployment -d ./helm-packages
+	@echo "Helm chart packaged to ./helm-packages/"
+
+.PHONY: helm-install
+helm-install:
+	@echo "Installing Helm chart..."
+	helm install telemetry-api helm/deployment \
+		--namespace default \
+		--values helm/deployment/values.yaml

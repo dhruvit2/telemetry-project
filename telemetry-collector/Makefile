@@ -60,6 +60,7 @@ build:
 	$(GO) build -o ./bin/$(SERVICE_NAME) ./cmd/collector
 
 build-local:
+	cp -rf ../messagebroker/ ./
 	@echo "Building $(PROJECT_NAME) Linux binary..."
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags="-w -s" \

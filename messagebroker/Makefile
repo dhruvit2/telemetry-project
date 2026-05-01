@@ -120,7 +120,13 @@ stop-docker:
 	@echo "✓ MessageBroker cluster stopped"
 
 # Kubernetes targets
-deploy-k8s:
+helm-package:
+	@echo "Packaging Helm chart..."
+	@mkdir -p ./helm-packages
+	helm package deployment/helm/messagebroker -d ./helm-packages
+	@echo "Helm chart packaged to ./helm-packages/"
+
+helm-install:
 	@echo "Creating Kubernetes namespace..."
 	@kubectl create namespace $(K8S_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@echo "Deploying MessageBroker to Kubernetes..."
@@ -128,6 +134,8 @@ deploy-k8s:
 		--namespace $(K8S_NAMESPACE) \
 		--values deployment/helm/messagebroker/values.yaml
 	@echo "✓ MessageBroker deployed to Kubernetes"
+
+deploy-k8s: helm-install
 
 update-k8s:
 	@echo "Updating MessageBroker deployment..."

@@ -23,12 +23,14 @@ build: ## Build the Go binary
 	@echo "Build complete: bin/$(BINARY_NAME)"
 
 build-local: ## Build for local machine
+	cp -rf ../messagebroker/ ./
 	@echo "Building $(BINARY_NAME) for local..."
 	go build -o bin/$(BINARY_NAME) ./cmd/telemetry-streamer
 	@echo "Build complete: bin/$(BINARY_NAME)"
 
 # Docker targets
 docker-build: ## Build Docker image
+	cp -rf ../messagebroker/ ./
 	@echo "Building Docker image: $(DOCKER_IMAGE):$(DOCKER_TAG)"
 	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 	docker tag $(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_IMAGE):latest
@@ -79,7 +81,7 @@ docker-stop: ## Stop running Docker container
 # Helm targets
 helm-package: ## Package Helm chart
 	@echo "Packaging Helm chart: $(CHART_NAME)-$(CHART_VERSION).tgz"
-	cd deployment && helm package --version $(CHART_VERSION) ./helm/$(CHART_NAME)
+	cd deployment && helm package --version $(CHART_VERSION) ./helm/$(CHART_NAME) -d ./helm-packages
 	@echo "Helm chart packaged successfully"
 
 helm-lint: ## Lint Helm chart

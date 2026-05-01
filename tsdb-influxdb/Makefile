@@ -100,6 +100,12 @@ init-influx:
 	@scripts/init-influx.sh "$(INFLUX_ORG)" "$(INFLUX_BUCKET)" "$(INFLUX_TOKEN)"
 
 # Helm targets
+helm-package:
+	@echo "$(BLUE)Packaging Helm chart...$(NC)"
+	@mkdir -p ./helm-packages
+	helm package $(HELM_CHART_PATH) -d ./helm-packages
+	@echo "$(GREEN)Helm chart packaged to ./helm-packages/$(NC)"
+
 helm-install:
 	@echo "$(BLUE)Installing InfluxDB with Helm...$(NC)"
 	helm install $(HELM_RELEASE_NAME) $(HELM_CHART_PATH) \

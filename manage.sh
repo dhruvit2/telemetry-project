@@ -40,11 +40,18 @@ API_RELEASE="telemetry-api"
 # Helm chart paths (relative to project root)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ETCD_VALUES="$SCRIPT_DIR/telemetry-etcd/values.yaml"
-BROKER_CHART="$SCRIPT_DIR/messagebroker/deployment/helm/messagebroker"
-INFLUXDB_CHART="$SCRIPT_DIR/tsdb-influxdb/helm"
-COLLECTOR_CHART="$SCRIPT_DIR/telemetry-collector/deployment/helm/telemetry-collector"
-STREAMING_CHART="$SCRIPT_DIR/telemetry-streaming/deployment/helm/telemetry-streaming"
-API_CHART="$SCRIPT_DIR/telemetry-api/helm/deployment"
+
+get_latest_package() {
+    local dir="$1"
+    local prefix="$2"
+    ls -t "${dir}"/${prefix}-*.tgz 2>/dev/null | head -n 1
+}
+
+BROKER_PKG=$(get_latest_package "$SCRIPT_DIR/messagebroker/helm-packages" "messagebroker")
+INFLUXDB_PKG=$(get_latest_package "$SCRIPT_DIR/tsdb-influxdb/helm-packages" "influxdb-tsdb")
+COLLECTOR_PKG=$(get_latest_package "$SCRIPT_DIR/telemetry-collector/helm-packages" "telemetry-collector")
+STREAMING_PKG=$(get_latest_package "$SCRIPT_DIR/telemetry-streaming/deployment/helm-packages" "telemetry-streaming")
+API_PKG=$(get_latest_package "$SCRIPT_DIR/telemetry-api/helm-packages" "telemetry-api")
 
 # Wait timeouts (seconds)
 ETCD_WAIT=120
@@ -139,11 +146,26 @@ check_bitnami_repo() {
     fi
 }
 
+check_packages() {
+    local missing=()
+    [[ -z "$BROKER_PKG" ]] && missing+=("messagebroker")
+    [[ -z "$INFLUXDB_PKG" ]] && missing+=("tsdb-influxdb")
+    [[ -z "$COLLECTOR_PKG" ]] && missing+=("telemetry-collector")
+    [[ -z "$STREAMING_PKG" ]] && missing+=("telemetry-streaming")
+    [[ -z "$API_PKG" ]] && missing+=("telemetry-api")
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        error "Missing helm packages for: ${missing[*]}. Please run 'make helm-package' in their respective directories first."
+        exit 1
+    fi
+}
+
 # ── Deploy ────────────────────────────────────────────────────────────────────
 deploy_all() {
     banner "Deploying Telemetry Pipeline"
     check_prerequisites
     check_bitnami_repo
+    check_packages
 
     # ── 1. etcd (coordination backbone — must come first) ─────────────────────
     log "Step 1/6 — Deploying etcd cluster ($ETCD_RELEASE)..."
@@ -166,32 +188,27 @@ deploy_all() {
 
     # ── 2. InfluxDB TSDB (storage — before collector) ─────────────────────────
     log "Step 2/6 — Deploying InfluxDB TSDB ($INFLUXDB_RELEASE)..."
-    helm_install_or_upgrade "$INFLUXDB_RELEASE" "$INFLUXDB_CHART" \
-        --values "$INFLUXDB_CHART/values.yaml"
+    helm_install_or_upgrade "$INFLUXDB_RELEASE" "$INFLUXDB_PKG"
     wait_for_pods "app.kubernetes.io/name=influxdb-tsdb" "$INFLUX_WAIT"
 
     # ── 3. MessageBroker (before streaming and collector) ─────────────────────
     log "Step 3/6 — Deploying MessageBroker ($BROKER_RELEASE)..."
-    helm_install_or_upgrade "$BROKER_RELEASE" "$BROKER_CHART" \
-        --values "$BROKER_CHART/values.yaml"
+    helm_install_or_upgrade "$BROKER_RELEASE" "$BROKER_PKG"
     wait_for_pods "app.kubernetes.io/name=messagebroker" "$BROKER_WAIT"
 
     # ── 4. Telemetry Collector (consumer from broker, writes to influx) ────────
     log "Step 4/6 — Deploying Telemetry Collector ($COLLECTOR_RELEASE)..."
-    helm_install_or_upgrade "$COLLECTOR_RELEASE" "$COLLECTOR_CHART" \
-        --values "$COLLECTOR_CHART/values.yaml"
+    helm_install_or_upgrade "$COLLECTOR_RELEASE" "$COLLECTOR_PKG"
     wait_for_pods "app.kubernetes.io/name=telemetry-collector" "$COLLECTOR_WAIT"
 
     # ── 5. Telemetry Streaming (producer to broker) ───────────────────────────
     log "Step 5/6 — Deploying Telemetry Streaming ($STREAMING_RELEASE)..."
-    helm_install_or_upgrade "$STREAMING_RELEASE" "$STREAMING_CHART" \
-        --values "$STREAMING_CHART/values.yaml"
+    helm_install_or_upgrade "$STREAMING_RELEASE" "$STREAMING_PKG"
     wait_for_pods "app.kubernetes.io/name=telemetry-streaming" "$STREAMING_WAIT"
 
     # ── 6. Telemetry API (query layer) ───────────────────────────────────────
     log "Step 6/6 — Deploying Telemetry API ($API_RELEASE)..."
-    helm_install_or_upgrade "$API_RELEASE" "$API_CHART" \
-        --values "$API_CHART/values.yaml"
+    helm_install_or_upgrade "$API_RELEASE" "$API_PKG"
     wait_for_pods "app.kubernetes.io/name=telemetry-api" "$API_WAIT"
 
     # ── Summary ───────────────────────────────────────────────────────────────
