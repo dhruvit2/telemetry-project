@@ -167,7 +167,7 @@ helm-upgrade:
 	@echo "Upgrading Helm chart in cluster..."
 	@read -p "Enter Kubernetes namespace (default: default): " KUBE_NS; \
 	KUBE_NS=$${KUBE_NS:-default}; \
-	helm upgrade $(PROJECT_NAME) $(HELM_CHART_PATH) \
+	helm upgrade --install $(PROJECT_NAME) $(HELM_CHART_PATH) \
 		--namespace $$KUBE_NS \
 		--values $(HELM_CHART_PATH)/values.yaml
 	@echo "Helm chart upgraded"

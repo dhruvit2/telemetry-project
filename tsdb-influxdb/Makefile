@@ -116,7 +116,7 @@ helm-install:
 
 helm-upgrade:
 	@echo "$(BLUE)Upgrading InfluxDB Helm release...$(NC)"
-	helm upgrade $(HELM_RELEASE_NAME) $(HELM_CHART_PATH) \
+	helm upgrade --install $(HELM_RELEASE_NAME) $(HELM_CHART_PATH) \
 		--namespace $(HELM_NAMESPACE)
 	@echo "$(GREEN)Helm upgrade complete$(NC)"
 

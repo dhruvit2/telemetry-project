@@ -1,0 +1,149 @@
+basePath: /
+definitions:
+  api.ErrorResponse:
+    properties:
+      code:
+        type: integer
+      error:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  api.GPUListResponse:
+    properties:
+      count:
+        type: integer
+      gpus:
+        items:
+          $ref: '#/definitions/repository.GPU'
+        type: array
+    type: object
+  api.GPUTelemetryResponse:
+    properties:
+      count:
+        type: integer
+      end_date:
+        type: string
+      gpu_id:
+        type: string
+      limit:
+        type: integer
+      offset:
+        type: integer
+      start_date:
+        type: string
+      telemetry:
+        items:
+          $ref: '#/definitions/repository.Telemetry'
+        type: array
+    type: object
+  repository.GPU:
+    properties:
+      host:
+        type: string
+      id:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+    type: object
+  repository.Telemetry:
+    properties:
+      Hostname:
+        type: string
+      container:
+        type: string
+      device:
+        type: string
+      gpu_id:
+        type: string
+      labels_raw:
+        type: string
+      metric_name:
+        type: string
+      modelName:
+        type: string
+      namespace:
+        type: string
+      pod:
+        type: string
+      timestamp:
+        type: string
+      uuid:
+        type: string
+      value:
+        type: number
+    type: object
+info:
+  contact: {}
+  description: REST API for querying GPU telemetry metrics from InfluxDB TSDB
+  title: Telemetry API
+  version: 1.0.0
+paths:
+  /api/v1/gpus:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all GPUs that have reported telemetry
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GPUListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: List all GPU IDs
+      tags:
+      - GPUs
+  /api/v1/gpus/{id}/telemetry:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve telemetry data for a specific GPU ID within an optional
+        date range
+      parameters:
+      - description: GPU ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Start Date (RFC3339 or YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End Date (RFC3339 or YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      - description: Number of records to return (default 100, max 1000)
+        in: query
+        name: limit
+        type: integer
+      - description: Number of records to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GPUTelemetryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get telemetry data for a GPU
+      tags:
+      - GPUs
+swagger: "2.0"

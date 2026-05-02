@@ -151,6 +151,9 @@ func (w *TSDBWriter) convertToLineProtocol(record map[string]interface{}) (strin
 	modelName := w.getStringFieldVariants(record, []string{"model_name", "modelName"}, "unknown")
 	hostName := w.getStringFieldVariants(record, []string{"host_name", "hostname", "Hostname", "hostName"}, "unknown")
 	container := w.getStringFieldVariants(record, []string{"container", "container_name"}, "unknown")
+	pod := w.getStringFieldVariants(record, []string{"pod"}, "unknown")
+	namespace := w.getStringFieldVariants(record, []string{"namespace"}, "unknown")
+	labelsRaw := w.getStringFieldVariants(record, []string{"labels_raw"}, "none")
 	value := w.getFloatField(record, "value", 0.0)
 
 	// Validate that no required fields are empty (prevent invalid InfluxDB line protocol)
@@ -200,11 +203,14 @@ func (w *TSDBWriter) convertToLineProtocol(record map[string]interface{}) (strin
 	modelNameEscaped := w.escapeTagValue(modelName)
 	hostNameEscaped := w.escapeTagValue(hostName)
 	containerEscaped := w.escapeTagValue(container)
+	podEscaped := w.escapeTagValue(pod)
+	namespaceEscaped := w.escapeTagValue(namespace)
+	labelsRawEscaped := w.escapeTagValue(labelsRaw)
 
 	// Build line protocol: measurement,tag1=v1,tag2=v2 field=value timestamp
 	// After escaping, tag values should be safe from special characters
-	tags := fmt.Sprintf("metric_name=%s,gpu_id=%s,device_id=%s,uuid=%s,model_name=%s,host_name=%s,container=%s",
-		metricNameEscaped, gpuIDEscaped, deviceIDEscaped, uuidEscaped, modelNameEscaped, hostNameEscaped, containerEscaped)
+	tags := fmt.Sprintf("metric_name=%s,gpu_id=%s,device_id=%s,uuid=%s,model_name=%s,host_name=%s,container=%s,pod=%s,namespace=%s,labels_raw=%s",
+		metricNameEscaped, gpuIDEscaped, deviceIDEscaped, uuidEscaped, modelNameEscaped, hostNameEscaped, containerEscaped, podEscaped, namespaceEscaped, labelsRawEscaped)
 
 	line := fmt.Sprintf("gpu_metrics,%s value=%f %d", tags, value, timestamp)
 

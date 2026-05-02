@@ -134,7 +134,7 @@ func (r *TSDBRepository) GetGPUs(ctx context.Context) ([]GPU, error) {
 
 // GetGPUTelemetry retrieves telemetry data for a specific GPU
 func (r *TSDBRepository) GetGPUTelemetry(ctx context.Context, gpuID string) ([]Telemetry, error) {
-	return r.GetGPUTelemetryByDateRange(ctx, gpuID, nil, nil)
+	return r.GetGPUTelemetryByDateRange(ctx, gpuID, nil, nil, 100, 0)
 }
 
 // GetGPUTelemetryByDateRange retrieves telemetry data for a GPU within a date range
@@ -142,6 +142,7 @@ func (r *TSDBRepository) GetGPUTelemetryByDateRange(
 	ctx context.Context,
 	gpuID string,
 	startDate, endDate *time.Time,
+	limit, offset int,
 ) ([]Telemetry, error) {
 	// 1. Handle Time Logic
 	// If startDate is nil, use 0 (Unix epoch) to get all historical data
@@ -157,14 +158,21 @@ func (r *TSDBRepository) GetGPUTelemetryByDateRange(
 
 	// 2. Build the Query
 	// Added pivot() to group all fields (temp, power, etc.) into a single row per timestamp
+	limitClause := ""
+	if limit > 0 {
+		limitClause = fmt.Sprintf("|> limit(n: %d, offset: %d)", limit, offset)
+	}
+
 	query := fmt.Sprintf(`
         from(bucket: "%s")
         |> range(start: %s, stop: %s)
         |> filter(fn: (r) => r._measurement == "gpu_metrics")
         |> filter(fn: (r) => r.gpu_id == "%s")
         |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-        |> sort(columns: ["_time"], desc: false)
-    `, r.bucket, startTime, endTime, gpuID)
+        |> group()
+        |> sort(columns: ["_time"], desc: true)
+        %s
+    `, r.bucket, startTime, endTime, gpuID, limitClause)
 
 	result, err := r.queryAPI.Query(ctx, query)
 	if err != nil {
@@ -193,6 +201,11 @@ func (r *TSDBRepository) GetGPUTelemetryByDateRange(
 			metricValue = v
 		}
 
+		labelsRawVal := getStr("labels_raw")
+		if labelsRawVal == "none" {
+			labelsRawVal = ""
+		}
+
 		telemetry := Telemetry{
 			Timestamp:  record.Time(),
 			MetricName: getStr("metric_name"),
@@ -202,10 +215,10 @@ func (r *TSDBRepository) GetGPUTelemetryByDateRange(
 			ModelName:  getStr("model_name"),
 			Hostname:   getStr("host_name"),
 			Container:  getStr("container"),
-			Pod:        "",
-			Namespace:  "",
+			Pod:        getStr("pod"),
+			Namespace:  getStr("namespace"),
 			Value:      metricValue,
-			LabelsRaw:  "",
+			LabelsRaw:  labelsRawVal,
 		}
 
 		telemetryList = append(telemetryList, telemetry)

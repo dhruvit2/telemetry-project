@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -17,6 +18,23 @@ type ErrorResponse struct {
 	Error     string `json:"error"`
 	Timestamp string `json:"timestamp"`
 	Code      int    `json:"code"`
+}
+
+// GPUListResponse represents the response containing a list of GPUs
+type GPUListResponse struct {
+	GPUs  []repository.GPU `json:"gpus"`
+	Count int              `json:"count"`
+}
+
+// GPUTelemetryResponse represents the response containing telemetry data
+type GPUTelemetryResponse struct {
+	GPUID     string                 `json:"gpu_id"`
+	Telemetry []repository.Telemetry `json:"telemetry"`
+	Count     int                    `json:"count"`
+	Limit     int                    `json:"limit"`
+	Offset    int                    `json:"offset"`
+	StartDate string                 `json:"start_date,omitempty"`
+	EndDate   string                 `json:"end_date,omitempty"`
 }
 
 // GPUHandler handles GPU-related HTTP endpoints
@@ -34,7 +52,14 @@ func NewGPUHandler(repo *repository.TSDBRepository, logger *zap.Logger) *GPUHand
 }
 
 // GetGPUs returns a list of all GPUs
-// GET /api/v1/gpus
+// @Summary List all GPU IDs
+// @Description Retrieve a list of all GPUs that have reported telemetry
+// @Tags GPUs
+// @Accept json
+// @Produce json
+// @Success 200 {object} GPUListResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/gpus [get]
 func (h *GPUHandler) GetGPUs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -50,9 +75,9 @@ func (h *GPUHandler) GetGPUs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := map[string]interface{}{
-		"gpus":  gpus,
-		"count": len(gpus),
+	response := GPUListResponse{
+		GPUs:  gpus,
+		Count: len(gpus),
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -63,7 +88,20 @@ func (h *GPUHandler) GetGPUs(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetGPUTelemetry returns telemetry data for a specific GPU
-// GET /api/v1/gpus/{id}/telemetry[?start_date=&end_date=]
+// @Summary Get telemetry data for a GPU
+// @Description Retrieve telemetry data for a specific GPU ID within an optional date range
+// @Tags GPUs
+// @Accept json
+// @Produce json
+// @Param id path string true "GPU ID"
+// @Param start_date query string false "Start Date (RFC3339 or YYYY-MM-DD)"
+// @Param end_date query string false "End Date (RFC3339 or YYYY-MM-DD)"
+// @Param limit query int false "Number of records to return (default 100, max 1000)"
+// @Param offset query int false "Number of records to skip (default 0)"
+// @Success 200 {object} GPUTelemetryResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/gpus/{id}/telemetry [get]
 func (h *GPUHandler) GetGPUTelemetry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
@@ -97,8 +135,29 @@ func (h *GPUHandler) GetGPUTelemetry(w http.ResponseWriter, r *http.Request) {
 		endDate = &t
 	}
 
+	// Parse limit and offset parameters
+	limit := 100 // default limit
+	limitStr := r.URL.Query().Get("limit")
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			if l > 1000 {
+				limit = 1000 // max limit
+			} else {
+				limit = l
+			}
+		}
+	}
+
+	offset := 0 // default offset
+	offsetStr := r.URL.Query().Get("offset")
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
 	// Retrieve telemetry data
-	telemetry, err := h.repo.GetGPUTelemetryByDateRange(ctx, gpuID, startDate, endDate)
+	telemetry, err := h.repo.GetGPUTelemetryByDateRange(ctx, gpuID, startDate, endDate, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to retrieve telemetry", zap.String("gpu_id", gpuID), zap.Error(err))
 		writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("failed to retrieve telemetry: %v", err))
@@ -108,17 +167,19 @@ func (h *GPUHandler) GetGPUTelemetry(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := map[string]interface{}{
-		"gpu_id":    gpuID,
-		"telemetry": telemetry,
-		"count":     len(telemetry),
+	response := GPUTelemetryResponse{
+		GPUID:     gpuID,
+		Telemetry: telemetry,
+		Count:     len(telemetry),
+		Limit:     limit,
+		Offset:    offset,
 	}
 
 	if startDate != nil {
-		response["start_date"] = startDate.Format(time.RFC3339)
+		response.StartDate = startDate.Format(time.RFC3339)
 	}
 	if endDate != nil {
-		response["end_date"] = endDate.Format(time.RFC3339)
+		response.EndDate = endDate.Format(time.RFC3339)
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

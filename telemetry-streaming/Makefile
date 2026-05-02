@@ -99,7 +99,7 @@ helm-install: helm-package ## Install Helm chart to Kubernetes
 
 helm-upgrade: helm-package ## Upgrade Helm chart in Kubernetes
 	@echo "Upgrading Helm chart..."
-	helm upgrade $(CHART_NAME) deployment/helm/$(CHART_NAME) \
+	helm upgrade --install $(CHART_NAME) deployment/helm/$(CHART_NAME) \
 		--namespace telemetry \
 		--values deployment/helm/$(CHART_NAME)/values.yaml
 	@echo "Helm chart upgraded"

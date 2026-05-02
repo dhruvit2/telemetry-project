@@ -4,8 +4,12 @@ VERSION ?= 1.0.0
 IMAGE_NAME ?= telemetry-api
 IMAGE_TAG ?= latest
 
+.PHONY: swagger
+swagger:
+	swag init -g cmd/server/main.go -o docs
+
 .PHONY: build
-build:
+build: swagger
 	go build -v -o bin/telemetry-api ./cmd/server/
 
 .PHONY: build-all
@@ -101,6 +105,6 @@ helm-package:
 .PHONY: helm-install
 helm-install:
 	@echo "Installing Helm chart..."
-	helm install telemetry-api helm/deployment \
+	helm upgrade --install telemetry-api helm/deployment \
 		--namespace default \
 		--values helm/deployment/values.yaml
