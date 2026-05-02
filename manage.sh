@@ -53,6 +53,12 @@ COLLECTOR_PKG=$(get_latest_package "$SCRIPT_DIR/telemetry-collector/helm-package
 STREAMING_PKG=$(get_latest_package "$SCRIPT_DIR/telemetry-streaming/deployment/helm-packages" "telemetry-streaming")
 API_PKG=$(get_latest_package "$SCRIPT_DIR/telemetry-api/helm-packages" "telemetry-api")
 
+BROKER_VALUES="$SCRIPT_DIR/messagebroker/deployment/helm/messagebroker/values.yaml"
+INFLUXDB_VALUES="$SCRIPT_DIR/tsdb-influxdb/helm/values.yaml"
+COLLECTOR_VALUES="$SCRIPT_DIR/telemetry-collector/deployment/helm/telemetry-collector/values.yaml"
+STREAMING_VALUES="$SCRIPT_DIR/telemetry-streaming/deployment/helm/telemetry-streaming/values.yaml"
+API_VALUES="$SCRIPT_DIR/telemetry-api/helm/deployment/values.yaml"
+
 # Wait timeouts (seconds)
 ETCD_WAIT=120
 BROKER_WAIT=90
@@ -184,31 +190,32 @@ deploy_all() {
         fi
         success "etcd release applied."
     fi
-    wait_for_pods "app.kubernetes.io/name=etcd" "$ETCD_WAIT"
 
     # ── 2. InfluxDB TSDB (storage — before collector) ─────────────────────────
     log "Step 2/6 — Deploying InfluxDB TSDB ($INFLUXDB_RELEASE)..."
-    helm_install_or_upgrade "$INFLUXDB_RELEASE" "$INFLUXDB_PKG"
+    helm_install_or_upgrade "$INFLUXDB_RELEASE" "$INFLUXDB_PKG" -f "$INFLUXDB_VALUES"
+
+    wait_for_pods "app.kubernetes.io/name=etcd" "$ETCD_WAIT"
     wait_for_pods "app.kubernetes.io/name=influxdb-tsdb" "$INFLUX_WAIT"
 
     # ── 3. MessageBroker (before streaming and collector) ─────────────────────
     log "Step 3/6 — Deploying MessageBroker ($BROKER_RELEASE)..."
-    helm_install_or_upgrade "$BROKER_RELEASE" "$BROKER_PKG"
+    helm_install_or_upgrade "$BROKER_RELEASE" "$BROKER_PKG" -f "$BROKER_VALUES"
     wait_for_pods "app.kubernetes.io/name=messagebroker" "$BROKER_WAIT"
 
     # ── 4. Telemetry Collector (consumer from broker, writes to influx) ────────
     log "Step 4/6 — Deploying Telemetry Collector ($COLLECTOR_RELEASE)..."
-    helm_install_or_upgrade "$COLLECTOR_RELEASE" "$COLLECTOR_PKG"
+    helm_install_or_upgrade "$COLLECTOR_RELEASE" "$COLLECTOR_PKG" -f "$COLLECTOR_VALUES"
     wait_for_pods "app.kubernetes.io/name=telemetry-collector" "$COLLECTOR_WAIT"
 
     # ── 5. Telemetry Streaming (producer to broker) ───────────────────────────
     log "Step 5/6 — Deploying Telemetry Streaming ($STREAMING_RELEASE)..."
-    helm_install_or_upgrade "$STREAMING_RELEASE" "$STREAMING_PKG"
+    helm_install_or_upgrade "$STREAMING_RELEASE" "$STREAMING_PKG" -f "$STREAMING_VALUES"
     wait_for_pods "app.kubernetes.io/name=telemetry-streaming" "$STREAMING_WAIT"
 
     # ── 6. Telemetry API (query layer) ───────────────────────────────────────
     log "Step 6/6 — Deploying Telemetry API ($API_RELEASE)..."
-    helm_install_or_upgrade "$API_RELEASE" "$API_PKG"
+    helm_install_or_upgrade "$API_RELEASE" "$API_PKG" -f "$API_VALUES"
     wait_for_pods "app.kubernetes.io/name=telemetry-api" "$API_WAIT"
 
     # ── Summary ───────────────────────────────────────────────────────────────
@@ -343,3 +350,4 @@ case "$COMMAND" in
         exit 1
         ;;
 esac
+

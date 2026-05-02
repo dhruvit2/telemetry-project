@@ -139,9 +139,9 @@ secrets:
 # Persistence (optional)
 persistence:
   enabled: true
-  storageClassName: "longhorn-custom"
+  storageClassName: ""
   accessMode: ReadWriteOnce
-  size: 2Gi
+  size: 512Mi
   mountPath: /data
 
 # Environment variables for collection sources

@@ -66,6 +66,19 @@ telemetry-project/
 └── telemetry-api/               ← REST query API (Go)
 ```
 
+## Storage class and resource update
+
+```
+telemetry-project/
+├── messagebroker/deployment/helm/messagebroker/values.yaml
+├── telemetry-etcd/values.yaml
+├── telemetry-streaming/deployment/helm/telemetry-streaming/values.yaml
+├── telemetry-collector/deployment/helm/telemetry-collector/values.yaml
+├── tsdb-influxdb/helm/values.yaml
+└── telemetry-api/helm/deployment/values.yaml
+```
+
+
 ## Images
 
 All images are on Docker Hub under `dhruvit2/`:
@@ -73,7 +86,7 @@ All images are on Docker Hub under `dhruvit2/`:
 | Image | Tag |
 |-------|-----|
 | `dhruvit2/messagebroker` | `5.0.16` |
-| `dhruvit2/telemetry-collector` | `5.0.16` |
+| `dhruvit2/telemetry-collector` | `5.0.17` |
 | `dhruvit2/telemetry-streaming` | `5.0.16` |
-| `dhruvit2/telemetry-api` | `5.0.14` |
+| `dhruvit2/telemetry-api` | `5.0.19` |
 | `influxdb` | `2.7` |

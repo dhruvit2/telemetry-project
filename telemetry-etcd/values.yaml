@@ -9,7 +9,7 @@ auth:
 persistence:
   enabled: true
   size: 1Gi
-  storageClass: "longhorn-custom" # Ensure this matches your cloud provider
+  storageClass: "" # Ensure this matches your cloud provider
 metrics:
   enabled: false # Helpful if you use Prometheus/Grafana
 image:

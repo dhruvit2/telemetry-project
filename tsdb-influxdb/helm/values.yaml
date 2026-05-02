@@ -98,8 +98,8 @@ influxdb:
   # Persistence
   persistence:
     enabled: true
-    storageClass: "longhorn-custom"
-    size: 2Gi
+    storageClass: ""
+    size: 5Gi
     path: /var/lib/influxdb2
 
 # High Availability Settings

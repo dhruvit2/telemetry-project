@@ -127,7 +127,7 @@ readinessProbe:
 # Volume for CSV data
 persistence:
   enabled: false
-  storageClass: "longhorn-custom"  # Change to your storage class
+  storageClass: ""  # Change to your storage class
   accessMode: ReadWriteOnce
   size: 100Mi
 
