@@ -61,7 +61,7 @@ API_VALUES="$SCRIPT_DIR/telemetry-api/helm/deployment/values.yaml"
 
 # Wait timeouts (seconds)
 ETCD_WAIT=120
-BROKER_WAIT=90
+BROKER_WAIT=120
 INFLUX_WAIT=120
 COLLECTOR_WAIT=90
 STREAMING_WAIT=60

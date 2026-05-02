@@ -90,3 +90,12 @@ All images are on Docker Hub under `dhruvit2/`:
 | `dhruvit2/telemetry-streaming` | `5.0.16` |
 | `dhruvit2/telemetry-api` | `5.0.19` |
 | `influxdb` | `2.7` |
+
+## API access
+
+Swagger to access APIs
+
+```
+Do a port forward from cluster and access below API
+http://localhost:3006/docs
+```
