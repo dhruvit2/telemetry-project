@@ -24,6 +24,7 @@ type Config struct {
 	BrokerAddresses   []string
 	Topic             string
 	ReplicationFactor int
+	NumPartitions     int
 
 	// Producer configuration
 	BatchSize       int
@@ -50,12 +51,13 @@ func LoadConfig() *Config {
 		LogLevel:    getEnv("LOG_LEVEL", "info"),
 
 		CSVFilePath: getEnv("CSV_FILE_PATH", "/data/telemetry.csv"),
-		ReadSpeed:   getEnvInt("READ_SPEED", 100),   // 100 msgs/sec by default
-		LoopFile:    getEnvBool("LOOP_FILE", false), // Don't loop by default
+		ReadSpeed:   getEnvInt("READ_SPEED", 100),
+		LoopFile:    getEnvBool("LOOP_FILE", false),
 
 		BrokerAddresses:   parseAddresses(getEnv("BROKER_ADDRESSES", "localhost:9092")),
 		Topic:             getEnv("TOPIC", "telemetry"),
 		ReplicationFactor: getEnvInt("REPLICATION_FACTOR", 3),
+		NumPartitions:     getEnvInt("NUM_PARTITIONS", 10),
 
 		BatchSize:       getEnvInt("BATCH_SIZE", 50),
 		BatchTimeoutMs:  getEnvInt("BATCH_TIMEOUT_MS", 1000),
@@ -102,7 +104,6 @@ func getEnvBool(key string, defaultVal bool) bool {
 }
 
 // parseAddresses parses broker addresses from comma-separated string
-// Supports formats: "host1:9092,host2:9092,host3:9092" or "localhost:9092"
 func parseAddresses(addressStr string) []string {
 	addresses := []string{}
 	if addressStr == "" {

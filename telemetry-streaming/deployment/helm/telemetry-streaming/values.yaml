@@ -3,7 +3,7 @@ replicaCount: 10
 image:
   repository: dhruvit2/telemetry-streaming
   pullPolicy: IfNotPresent
-  tag: "5.0.16"
+  tag: "5.0.20"
 
 imagePullSecrets: []
 
@@ -98,6 +98,7 @@ telemetryStreaming:
   # Resilience configuration
   maxRetries: 5           # Number of retry attempts
   retryBackoffMs: 100     # Initial backoff in milliseconds
+  numPartitions: 10        # Number of partitions for telemetry-data topic
   
   # Streaming mode configuration
   loopFile: true         # Set to true to continuously loop CSV file

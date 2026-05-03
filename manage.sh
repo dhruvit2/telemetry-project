@@ -203,15 +203,15 @@ deploy_all() {
     helm_install_or_upgrade "$BROKER_RELEASE" "$BROKER_PKG" -f "$BROKER_VALUES"
     wait_for_pods "app.kubernetes.io/name=messagebroker" "$BROKER_WAIT"
 
-    # ── 4. Telemetry Collector (consumer from broker, writes to influx) ────────
-    log "Step 4/6 — Deploying Telemetry Collector ($COLLECTOR_RELEASE)..."
-    helm_install_or_upgrade "$COLLECTOR_RELEASE" "$COLLECTOR_PKG" -f "$COLLECTOR_VALUES"
-    wait_for_pods "app.kubernetes.io/name=telemetry-collector" "$COLLECTOR_WAIT"
-
     # ── 5. Telemetry Streaming (producer to broker) ───────────────────────────
-    log "Step 5/6 — Deploying Telemetry Streaming ($STREAMING_RELEASE)..."
+    log "Step 4/6 — Deploying Telemetry Streaming ($STREAMING_RELEASE)..."
     helm_install_or_upgrade "$STREAMING_RELEASE" "$STREAMING_PKG" -f "$STREAMING_VALUES"
     wait_for_pods "app.kubernetes.io/name=telemetry-streaming" "$STREAMING_WAIT"
+
+    # ── 4. Telemetry Collector (consumer from broker, writes to influx) ────────
+    log "Step 5/6 — Deploying Telemetry Collector ($COLLECTOR_RELEASE)..."
+    helm_install_or_upgrade "$COLLECTOR_RELEASE" "$COLLECTOR_PKG" -f "$COLLECTOR_VALUES"
+    wait_for_pods "app.kubernetes.io/name=telemetry-collector" "$COLLECTOR_WAIT"
 
     # ── 6. Telemetry API (query layer) ───────────────────────────────────────
     log "Step 6/6 — Deploying Telemetry API ($API_RELEASE)..."

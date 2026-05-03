@@ -57,17 +57,17 @@ coordinator:
 
 storage:
   enabled: true
-  size: 2Gi
+  size: 5Gi
   storageClass: "local-path"
   mountPath: /app/data
 
 resources:
   limits:
     cpu: 2000m
-    memory: 2Gi
+    memory: 5Gi
   requests:
     cpu: 1000m
-    memory: 1Gi
+    memory: 2Gi
 
 autoscaling:
   enabled: false

@@ -27,6 +27,7 @@ type MessageRecord struct {
 type ProducerConfig struct {
 	BrokerAddresses         []string
 	Topic                   string
+	NumPartitions           int
 	BatchSize               int
 	BatchTimeoutMs          int
 	CompressionType         string
@@ -161,6 +162,9 @@ func NewTelemetryProducer(config *ProducerConfig, logger *zap.Logger) (*Telemetr
 	}
 	if config.CircuitBreakerThreshold <= 0 {
 		config.CircuitBreakerThreshold = 10
+	}
+	if config.NumPartitions <= 0 {
+		config.NumPartitions = 10
 	}
 
 	// Connect to messagebroker via gRPC
@@ -350,9 +354,8 @@ func (p *TelemetryProducer) sendBatch(batch [][]byte) error {
 	failCount := 0
 
 	for i, msgData := range batch {
-		// Distribute messages across all 3 partitions using round-robin
-		// This ensures all consumers in the group get messages
-		partition := int32((atomic.LoadInt64(&p.sentMessages) + int64(i)) % 3)
+		// Distribute messages across all configured partitions using round-robin
+		partition := int32((atomic.LoadInt64(&p.sentMessages) + int64(i)) % int64(p.config.NumPartitions))
 
 		req := &pb.ProduceRequest{
 			Topic:     p.config.Topic,
@@ -398,7 +401,7 @@ func (p *TelemetryProducer) ensureTopicExists(ctx context.Context) error {
 
 	req := &pb.CreateTopicRequest{
 		Topic:             p.config.Topic,
-		NumPartitions:     3,
+		NumPartitions:     int32(p.config.NumPartitions),
 		ReplicationFactor: int32(p.config.ReplicationFactor),
 	}
 

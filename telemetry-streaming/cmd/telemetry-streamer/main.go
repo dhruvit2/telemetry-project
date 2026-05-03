@@ -48,6 +48,7 @@ func main() {
 	producerConfig := &producer.ProducerConfig{
 		BrokerAddresses:         cfg.BrokerAddresses,
 		Topic:                   cfg.Topic,
+		NumPartitions:           cfg.NumPartitions,
 		BatchSize:               cfg.BatchSize,
 		BatchTimeoutMs:          cfg.BatchTimeoutMs,
 		CompressionType:         cfg.CompressionType,
